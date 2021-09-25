@@ -3,6 +3,7 @@ package com.example.JunitPlayGround.junit5playground.extension_2;
 import com.example.JunitPlayGround.junit5playground.extension_1.SLL;
 import com.example.JunitPlayGround.junit5playground.initializers.WiremockInitializer;
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,21 +24,20 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-@ExtendWith(FieldExtension.class)
+@WiremockCustom
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextConfiguration(initializers = {WiremockInitializer.class})
 public class EnrichTestTemplateJunit5IT {
 
 
 //    @SSLTemplate
 
-    public TestRestTemplateSSL template=new TestRestTemplateSSL();
+    public TestRestTemplate template=new TestRestTemplate();
 
 //    @SSLTemplate
     public String sslStrong="ana";
 
-    @Autowired
-    public WireMockServer wireMockServer;
+//    @Autowired
+//    public WireMockServer wireMockServer;
 
     @LocalServerPort
     private int port;
