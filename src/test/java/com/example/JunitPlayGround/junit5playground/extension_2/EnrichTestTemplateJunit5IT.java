@@ -1,16 +1,8 @@
 package com.example.JunitPlayGround.junit5playground.extension_2;
 
-import com.example.JunitPlayGround.junit5playground.extension_1.SLL;
-import com.example.JunitPlayGround.junit5playground.initializers.WiremockInitializer;
-import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
+import com.example.JunitPlayGround.junit5playground.extension_1.SSLEnabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
@@ -18,32 +10,21 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
 @WiremockCustom
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ExtendWith(RestTemplatePostProcessorExtension.class)
 public class EnrichTestTemplateJunit5IT {
 
-
-//    @SSLTemplate
-
-    public TestRestTemplate template=new TestRestTemplate();
-
-//    @SSLTemplate
-    public String sslStrong="ana";
-
-//    @Autowired
-//    public WireMockServer wireMockServer;
+    @SSLEnabled
+    public TestRestTemplate template;
 
     @LocalServerPort
     private int port;
 
-    @BeforeEach
-    public void initSSL(){}
 
     @Test
     public void test_endpoint() throws URISyntaxException {

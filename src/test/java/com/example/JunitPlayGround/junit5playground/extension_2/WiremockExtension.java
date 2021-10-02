@@ -14,9 +14,7 @@ public class WiremockExtension implements BeforeAllCallback, AfterAllCallback {
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
         wireMockServer = new WireMockServer(new WireMockConfiguration()
                 .port(8087)
-                .httpsPort(8088)
-                .keystorePath("src/test/resources/mykeystore.jks")
-                .keystorePassword("Change1t!"));
+                .httpsPort(8088));
         System.out.println("wiremockHasStarted");
         wireMockServer.start();
 

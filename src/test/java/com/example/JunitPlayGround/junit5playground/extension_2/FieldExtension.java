@@ -1,8 +1,5 @@
 package com.example.JunitPlayGround.junit5playground.extension_2;
 
-import com.example.JunitPlayGround.junit5playground.extension_1.SLL;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.support.AnnotationSupport;
 import org.springframework.boot.test.web.client.TestRestTemplate;
