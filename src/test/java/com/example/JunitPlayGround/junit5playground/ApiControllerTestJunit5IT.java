@@ -1,7 +1,6 @@
 package com.example.JunitPlayGround.junit5playground;
 
 import com.example.JunitPlayGround.junit5playground.extension_2.WiremockCustom;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -18,17 +17,14 @@ import java.net.URISyntaxException;
 @WiremockCustom
 public class ApiControllerTestJunit5IT {
 
-
     private TestRestTemplate template = new TestRestTemplate();
-
 
     @LocalServerPort
     private int port;
 
-
     @Test
     public void test_endpoint() throws URISyntaxException {
-        URI uri = new URI(String.format("http://localhost:8087/ais/123/refresh", port));
+        URI uri = new URI(String.format("http://localhost:8087/ais/123/refresh/321/hello?id3=dsada", port));
         System.out.println(uri);
         RequestEntity<Void> request = new RequestEntity<>(HttpMethod.GET, uri);
         ResponseEntity<Object> response = template.exchange(request, new ParameterizedTypeReference<Object>() {
@@ -39,7 +35,7 @@ public class ApiControllerTestJunit5IT {
 
     @Test
     public void test_endpoint2() throws URISyntaxException {
-        URI uri = new URI(String.format("http://localhost:8087/ais/123/refresh", port));
+        URI uri = new URI(String.format("http://localhost:8087/ais/123/refresh/321/hello", port));
         System.out.println(uri);
         RequestEntity<Void> request = new RequestEntity<>(HttpMethod.GET, uri);
         ResponseEntity<Object> response = template.exchange(request, new ParameterizedTypeReference<Object>() {

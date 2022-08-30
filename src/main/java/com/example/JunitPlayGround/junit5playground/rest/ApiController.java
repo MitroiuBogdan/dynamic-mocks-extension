@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 public class ApiController {
 
 
-    @GetMapping("/ais/{id}/refresh/{id2}")
-    public String getSomething(@PathVariable String id, @PathVariable String id2) throws HttpTimeoutException {
+    @GetMapping("/ais/{id}/refresh/{id2}/hello")
+    public String getSomething(@PathVariable String id, @PathVariable String id2, @RequestParam String id3) throws HttpTimeoutException {
         System.out.println("API has been called " + LocalDateTime.now());
         return "HELLO";
     }

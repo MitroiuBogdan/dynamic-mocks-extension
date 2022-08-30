@@ -14,6 +14,7 @@ import org.apache.logging.log4j.util.Strings;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -51,29 +52,31 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
             return responseDefinition;
         }
 
-        Map<String, String> requestFieldValue = extractFieldsFromRequest(request);
-
         String urlRegex = Optional
                 .of(transformerParameters.getString(URL_REGEX))
-                .orElseThrow(() -> new RuntimeException("Cannot be null"));
+                .orElseThrow(() -> new RuntimeException("urlRegex cannot be null"));
 
-        Map<String, String> urlParametersValue = extractParametersFromURL(request.getUrl(), urlRegex);
-        Map<String, String> transformerContext = Stream
-                .of(requestFieldValue, urlParametersValue)
-                .flatMap(map -> map.entrySet().stream())
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue));
+        Map<String, String> requestValues = extractFieldsFromRequest(request);
+        Map<String, String> urlValues = extractParametersFromURL(request.getUrl(), urlRegex);
+
+        Map<String, String> context = mergeMaps(requestValues, urlValues);
 
         String responseBody = getResponseBody(responseDefinition, fileSource);
-        String modifiedResponseBody = replaceResponseFieldsWithValuesFromContext(responseBody, transformerContext);
+        String modifiedResponseBody = replaceResponseFieldsWithValuesFromContext(responseBody, context);
 
         return ResponseDefinitionBuilder
                 .like(responseDefinition)
                 .but()
-                .withBodyFile(null)
                 .withBody(modifiedResponseBody)
                 .build();
+    }
+
+    private Map<String, String> mergeMaps(Map<String, String> map1, Map<String, String> map2) {
+        return Stream.of(map1, map2)
+                .flatMap(map -> map.entrySet().stream())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue));
     }
 
     private boolean hasEmptyResponseBody(ResponseDefinition responseDefinition) {
@@ -86,7 +89,7 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
             try {
                 return objectMapper.readValue(requestBody, Map.class);
             } catch (JsonProcessingException e) {
-                System.out.println("WARN-request is empty");
+                System.out.println("Request is empty");
             }
         }
         return new HashMap<>();
@@ -109,37 +112,19 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
         return map;
     }
 
-    private String getResponseBody(ResponseDefinition responseDefinition, FileSource fileSource) {
-        String body;
-        if (responseDefinition.getBody() != null) {
-            body = responseDefinition.getBody();
-        } else {
-            BinaryFile binaryFile = fileSource.getBinaryFileNamed(responseDefinition.getBodyFileName());
-            body = new String(binaryFile.readContents(), StandardCharsets.UTF_8);
-        }
-        return body;
-    }
-
-    private String replaceResponseFieldsWithValuesFromContext(String responseBodyRaw, Map<String, String> transformerContext) {
-        String modifiedResponseBody = responseBodyRaw;
-        List<String> responseFields = RESPONSE_FIELD_PATTERN.matcher(responseBodyRaw)
-                .results()
-                .map(MatchResult::group)
-                .collect(Collectors.toList());
-
-        for (String regexField : responseFields) {
-            modifiedResponseBody = modifiedResponseBody.replace(regexField, getValueForContext(regexField, transformerContext));
-        }
-
-        return modifiedResponseBody;
-    }
-
     private static List<String> extractValuesFormURL(String url, String urlRegex) {
-        return compile(urlRegex)
-                .matcher(url)
-                .results()
-                .map(matchResult -> matchResult.group(1))
-                .collect(Collectors.toList());
+        Matcher matcher = compile(urlRegex)
+                .matcher(url);
+
+        matcher.matches();
+
+        List<String> values = new ArrayList<>();
+        for (int i = 1; i < matcher.groupCount() + 1; i++) {
+            values.add(matcher.group(i));
+            System.out.println(matcher.group(i));
+        }
+
+        return values;
     }
 
     private static List<String> extractKeysFromRegexURL(String urlRegex) {
@@ -152,6 +137,31 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
 
                 })
                 .collect(Collectors.toList());
+    }
+
+    private String getResponseBody(ResponseDefinition responseDefinition, FileSource fileSource) {
+        String body;
+        if (responseDefinition.getBody() != null) {
+            body = responseDefinition.getBody();
+        } else {
+            BinaryFile binaryFile = fileSource.getBinaryFileNamed(responseDefinition.getBodyFileName());
+            body = new String(binaryFile.readContents(), StandardCharsets.UTF_8);
+        }
+        return body;
+    }
+
+    private String replaceResponseFieldsWithValuesFromContext(String responseBodyRaw, Map<String, String> context) {
+        String modifiedResponseBody = responseBodyRaw;
+        List<String> responseFields = RESPONSE_FIELD_PATTERN.matcher(responseBodyRaw)
+                .results()
+                .map(MatchResult::group)
+                .collect(Collectors.toList());
+
+        for (String regexField : responseFields) {
+            modifiedResponseBody = modifiedResponseBody.replace(regexField, getValueForContext(regexField, context));
+        }
+
+        return modifiedResponseBody;
     }
 
     private String getValueForContext(String field, Map<String, String> transformerContext) {

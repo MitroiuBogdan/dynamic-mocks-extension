@@ -1,4 +1,6 @@
 {
   "id": "$(id)",
-  "redirectUrl": "www.localhost.ro"
+  "redirectUrl": "www.localhost.ro",
+  "id2": "$(id2)",
+  "id3": "$(id3)"
 }

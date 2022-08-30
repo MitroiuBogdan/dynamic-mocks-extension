@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "GET",
-    "urlPattern": "/ais/*.[^/]+/refresh"
+    "urlPattern": "/ais/*.[^/]+/refresh/*.[^/]+/hello\\?id3=*.[^/]+"
   },
   "response": {
     "status": 200,
@@ -11,10 +11,10 @@
     },
     "bodyFileName": "response.json",
     "transformers": [
-      "body-transformer"
+      "yllu-body-transformer"
     ],
     "transformerParameters": {
-      "urlRegex": "/ais/(?<id>.*?)/refresh"
+      "urlRegex": "/ais/(?<id>.*?)/refresh/(?<id2>.*?)/hello\\?id3=(?<id3>.*?)"
     }
   }
 }
