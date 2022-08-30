@@ -1,5 +1,7 @@
 package com.example.JunitPlayGround.junit5playground.extension_2;
 
+import com.example.JunitPlayGround.junit5playground.CustomBodyTransformer;
+import com.example.JunitPlayGround.junit5playground.initializers.YlluxBodyTransformer;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -14,7 +16,8 @@ public class WiremockExtension implements BeforeAllCallback, AfterAllCallback {
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
         wireMockServer = new WireMockServer(new WireMockConfiguration()
                 .port(8087)
-                .httpsPort(8088));
+                .httpsPort(8088)
+                .extensions(new YlluxBodyTransformer()));
         System.out.println("wiremockHasStarted");
         wireMockServer.start();
 

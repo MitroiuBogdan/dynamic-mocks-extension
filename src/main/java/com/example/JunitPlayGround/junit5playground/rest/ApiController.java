@@ -1,9 +1,7 @@
 package com.example.JunitPlayGround.junit5playground.rest;
 
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.net.http.HttpTimeoutException;
 import java.time.LocalDateTime;
@@ -12,8 +10,8 @@ import java.time.LocalDateTime;
 public class ApiController {
 
 
-    @GetMapping("/ais/refresh")
-    public String getSomething() throws HttpTimeoutException {
+    @GetMapping("/ais/{id}/refresh/{id2}")
+    public String getSomething(@PathVariable String id, @PathVariable String id2) throws HttpTimeoutException {
         System.out.println("API has been called " + LocalDateTime.now());
         return "HELLO";
     }

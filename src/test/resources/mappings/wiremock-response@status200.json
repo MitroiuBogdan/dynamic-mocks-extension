@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "GET",
-    "urlPattern": "/ais/refresh"
+    "urlPattern": "/ais/*.[^/]+/refresh"
   },
   "response": {
     "status": 200,
@@ -9,9 +9,12 @@
       "Content-Type": "application/json",
       "Cache-Control": "no-cache"
     },
-    "jsonBody": {
-      "id": "uuid",
-      "redirectUrl": "www.localhost.ro"
+    "bodyFileName": "response.json",
+    "transformers": [
+      "body-transformer"
+    ],
+    "transformerParameters": {
+      "urlRegex": "/ais/(?<id>.*?)/refresh"
     }
   }
 }

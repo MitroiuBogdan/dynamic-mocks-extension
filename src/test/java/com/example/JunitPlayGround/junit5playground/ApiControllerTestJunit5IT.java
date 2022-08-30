@@ -25,11 +25,10 @@ public class ApiControllerTestJunit5IT {
     @LocalServerPort
     private int port;
 
-    @BeforeEach
 
     @Test
     public void test_endpoint() throws URISyntaxException {
-        URI uri = new URI(String.format("http://localhost:8087/ais/refresh", port));
+        URI uri = new URI(String.format("http://localhost:8087/ais/123/refresh", port));
         System.out.println(uri);
         RequestEntity<Void> request = new RequestEntity<>(HttpMethod.GET, uri);
         ResponseEntity<Object> response = template.exchange(request, new ParameterizedTypeReference<Object>() {
@@ -40,7 +39,7 @@ public class ApiControllerTestJunit5IT {
 
     @Test
     public void test_endpoint2() throws URISyntaxException {
-        URI uri = new URI(String.format("http://localhost:8087/ais/refresh", port));
+        URI uri = new URI(String.format("http://localhost:8087/ais/123/refresh", port));
         System.out.println(uri);
         RequestEntity<Void> request = new RequestEntity<>(HttpMethod.GET, uri);
         ResponseEntity<Object> response = template.exchange(request, new ParameterizedTypeReference<Object>() {
