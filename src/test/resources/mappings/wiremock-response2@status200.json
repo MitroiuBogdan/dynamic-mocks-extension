@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "GET",
-    "urlPattern": "/ais/*.[^/]+/refresh/*.[^/]+/hello\\?id3=*.[^/]+"
+    "urlPattern": "/ais/*.[^/]+/refresh/*.[^/]+/hello"
   },
   "response": {
     "status": 200,
@@ -14,7 +14,7 @@
       "body-transformer"
     ],
     "transformerParameters": {
-      "urlRegex": "/ais/(?<id>.*?)/refresh/(?<id2>.*?)/hello\\?id3=(?<id3>.*?)"
+      "urlRegex": "/ais/(?<id>.*?)/refresh/(?<id2>.*?)/hello"
     }
   }
 }

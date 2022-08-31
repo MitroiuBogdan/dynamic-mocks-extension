@@ -1,6 +1,7 @@
 package com.example.JunitPlayGround.junit5playground;
 
 import com.example.JunitPlayGround.junit5playground.extension_2.WiremockCustom;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -15,6 +16,7 @@ import java.net.URISyntaxException;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @WiremockCustom
+@WireMockTest
 public class ApiControllerTestJunit5IT {
 
     private TestRestTemplate template = new TestRestTemplate();

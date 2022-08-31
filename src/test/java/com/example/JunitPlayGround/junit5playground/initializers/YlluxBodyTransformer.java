@@ -27,7 +27,7 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
     private static final Pattern REGEX_URL_PATTERN = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*?)>");// e.g. (?<id>.*?)
     private static final Pattern RANDOM_INTEGER_PATTERN = Pattern.compile("!RandomInteger");
 
-    private static final String TRANSFORMER_NAME = "yllu-body-transformer";
+    private static final String TRANSFORMER_NAME = "body-transformer";
     private static final String URL_REGEX = "urlRegex";
     private ObjectMapper objectMapper;
 
@@ -158,7 +158,10 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
                 .collect(Collectors.toList());
 
         for (String regexField : responseFields) {
-            modifiedResponseBody = modifiedResponseBody.replace(regexField, getValueForContext(regexField, context));
+            if (!context.containsKey(regexField.substring(2, regexField.length() - 1))) {
+                modifiedResponseBody = modifiedResponseBody.replace(regexField, "null");
+            } else
+                modifiedResponseBody = modifiedResponseBody.replace(regexField, getValueForContext(regexField, context));
         }
 
         return modifiedResponseBody;
