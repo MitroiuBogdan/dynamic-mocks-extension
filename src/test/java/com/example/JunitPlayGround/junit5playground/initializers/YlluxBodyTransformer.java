@@ -11,10 +11,10 @@ import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseDefinitionTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.ResponseDefinition;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
 
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import static java.util.regex.Pattern.compile;
 import static org.apache.logging.log4j.util.Strings.isBlank;
 
+@Slf4j
 public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
 
     private static final Pattern RESPONSE_FIELD_PATTERN = Pattern.compile("\\$\\(.*?\\)"); // e.g. $(id)
@@ -55,15 +56,14 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
         if (this.hasEmptyResponseBody(responseDefinition)) {
             return responseDefinition;
         }
-
         String urlRegex = Optional
                 .of(transformerParameters.getString(URL_REGEX))
                 .orElseThrow(() -> new RuntimeException("urlRegex cannot be null"));
 
-        Map<String, String> requestValues = extractFieldsFromRequest(request);
-        Map<String, String> urlValues = extractParametersFromURL(request.getUrl(), urlRegex);
+        Map<String, String> requestParametersContext = storeParametersFromURL(request.getUrl(), urlRegex);
+        Map<String, String> urlParametersContext = storeFieldsFromRequestBody(request);
 
-        Map<String, String> context = mergeMaps(requestValues, urlValues);
+        Map<String, String> context = mergeContexts(urlParametersContext, requestParametersContext);
 
         String responseBody = getResponseBody(responseDefinition, fileSource);
         String modifiedResponseBody = replaceResponseFieldsWithValuesFromContext(responseBody, context);
@@ -75,7 +75,7 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
                 .build();
     }
 
-    private Map<String, String> mergeMaps(Map<String, String> map1, Map<String, String> map2) {
+    private Map<String, String> mergeContexts(Map<String, String> map1, Map<String, String> map2) {
         return Stream.of(map1, map2)
                 .flatMap(map -> map.entrySet().stream())
                 .collect(Collectors.toMap(
@@ -87,60 +87,23 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
         return responseDefinition.getBody() == null && responseDefinition.getBodyFileName() == null;
     }
 
-    public Map<String, String> extractFieldsFromRequest(Request request) {
+    private Map<String, String> storeFieldsFromRequestBody(Request request) {
         String requestBody = request.getBodyAsString();
         if (!Strings.isEmpty(requestBody)) {
             try {
                 ObjectNode jsonNode = (ObjectNode) objectMapper.readTree(requestBody);
-                Map<String, String> map = extractFieldsIntoMap(new HashMap<>(), jsonNode, null, 0);
-                System.out.println(map);
+                Map<String, String> map = extractJsonFieldValueIntoMap(new HashMap<>(), jsonNode, null, 0);
                 return map;
             } catch (JsonProcessingException e) {
-                System.out.println("Request is empty");
+                log.warn("Request body is empty");
             }
         }
         return new HashMap<>();
     }
-    
-    public Map<String, String> extractFieldsIntoMap(Map<String, String> resultMap, JsonNode node, String parentNodeName, int layerIndex) throws JsonProcessingException {
-        for (Iterator<Map.Entry<String, JsonNode>> it = node.fields(); it.hasNext(); ) {
-            Map.Entry<String, JsonNode> field = it.next();
-            if (!field.getValue().isValueNode() && !field.getValue().isArray()) {
-                String fieldName = parentNodeName != null ? constructFieldNameByParentObject(parentNodeName, field.getKey()) : field.getKey();
-                extractFieldsIntoMap(resultMap, field.getValue(), fieldName, layerIndex);
-            } else {
-                String resultMapKey = constructFieldNameByParentObject(parentNodeName, field.getKey());
-                String resultMapValue;
-                if (field.getValue().isNumber()) {
-                    resultMapValue = field.getValue().toString();
-                } else if (field.getValue().isArray()) {
-                    resultMapValue = field.getValue() != null ? String.valueOf(field.getValue().toString()) : "null";
-                } else {
-                    resultMapValue = !isBlank(field.getValue().textValue()) ? field.getValue().textValue() : "null";
-                }
-                resultMap.put(resultMapKey, resultMapValue);
-                layerIndex++;
-            }
-        }
-        return resultMap;
-    }
 
-    private static String constructFieldNameByParentObject(String parentNodeName, String nodeName) {
-        StringBuilder stringBuilder = new StringBuilder();
-        String fieldName;
-        if (parentNodeName != null) {
-            fieldName = stringBuilder.append(parentNodeName)
-                    .append(".")
-                    .append(nodeName).toString();
-        } else {
-            fieldName = nodeName;
-        }
-        return fieldName;
-    }
-
-    private static Map<String, String> extractParametersFromURL(String url, String urlRegex) {
-        List<String> keys = extractKeysFromRegexURL(urlRegex);
-        List<String> values = extractValuesFormURL(url, urlRegex);
+    private Map<String, String> storeParametersFromURL(String url, String urlRegex) {
+        List<String> keys = extractParameterNamesFromRegexURL(urlRegex);
+        List<String> values = extractParameterValuesFormURL(url, urlRegex);
 
         Map<String, String> map = new HashMap<>();
         if (keys.size() == values.size()) {
@@ -148,12 +111,20 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
                 map.put(keys.get(i), values.get(i));
             }
         } else {
-            System.out.println("Values dont match");
+            System.out.println("Values did match");
         }
         return map;
     }
 
-    private static List<String> extractValuesFormURL(String url, String urlRegex) {
+    private List<String> extractParameterNamesFromRegexURL(String urlRegex) {
+        return REGEX_URL_PATTERN
+                .matcher(urlRegex)
+                .results()
+                .map(matchResult -> matchResult.group(1))
+                .collect(Collectors.toList());
+    }
+
+    private List<String> extractParameterValuesFormURL(String url, String urlRegex) {
         Matcher matcher = compile(urlRegex)
                 .matcher(url);
         matcher.matches();
@@ -161,22 +132,8 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
         List<String> values = new ArrayList<>();
         for (int i = 1; i < matcher.groupCount() + 1; i++) {
             values.add(matcher.group(i));
-            System.out.println(matcher.group(i));
         }
-
         return values;
-    }
-
-    private static List<String> extractKeysFromRegexURL(String urlRegex) {
-        return REGEX_URL_PATTERN
-                .matcher(urlRegex)
-                .results()
-                .map(matchResult -> {
-                    System.out.println(matchResult.group(1));
-                    return matchResult.group(1);
-
-                })
-                .collect(Collectors.toList());
     }
 
     private String getResponseBody(ResponseDefinition responseDefinition, FileSource fileSource) {
@@ -202,12 +159,12 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
                 System.out.println(regexField);
                 modifiedResponseBody = modifiedResponseBody.replace(regexField, UUID.randomUUID().toString());
             }
+
             if (!context.containsKey(regexField.substring(2, regexField.length() - 1))) {
                 modifiedResponseBody = modifiedResponseBody.replace(regexField, "null");
             } else
                 modifiedResponseBody = modifiedResponseBody.replace(regexField, getValueForContext(regexField, context));
         }
-
         return modifiedResponseBody;
     }
 
@@ -216,4 +173,40 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
         return transformerContext.get(fieldName);
     }
 
+
+    private Map<String, String> extractJsonFieldValueIntoMap(Map<String, String> resultMap, JsonNode node, String parentNodeName, int layerIndex) throws JsonProcessingException {
+        for (Iterator<Map.Entry<String, JsonNode>> it = node.fields(); it.hasNext(); ) {
+            Map.Entry<String, JsonNode> field = it.next();
+            if (!field.getValue().isValueNode() && !field.getValue().isArray()) {
+                String fieldName = parentNodeName != null ? appendParentNodeName(parentNodeName, field.getKey()) : field.getKey();
+                extractJsonFieldValueIntoMap(resultMap, field.getValue(), fieldName, layerIndex);
+            } else {
+                String resultMapKey = appendParentNodeName(parentNodeName, field.getKey());
+                String resultMapValue;
+                if (field.getValue().isNumber()) {
+                    resultMapValue = field.getValue().toString();
+                } else if (field.getValue().isArray()) {
+                    resultMapValue = field.getValue() != null ? String.valueOf(field.getValue().toString()) : "null";
+                } else {
+                    resultMapValue = !isBlank(field.getValue().textValue()) ? field.getValue().textValue() : "null";
+                }
+                resultMap.put(resultMapKey, resultMapValue);
+                layerIndex++;
+            }
+        }
+        return resultMap;
+    }
+
+    private String appendParentNodeName(String parentNodeName, String nodeName) {
+        StringBuilder stringBuilder = new StringBuilder();
+        String fieldName;
+        if (parentNodeName != null) {
+            fieldName = stringBuilder.append(parentNodeName)
+                    .append(".")
+                    .append(nodeName).toString();
+        } else {
+            fieldName = nodeName;
+        }
+        return fieldName;
+    }
 }
