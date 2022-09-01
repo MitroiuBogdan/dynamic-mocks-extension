@@ -1,6 +1,8 @@
 package com.example.JunitPlayGround.junit5playground;
 
 import com.example.JunitPlayGround.junit5playground.extension_2.WiremockCustom;
+import com.example.JunitPlayGround.junit5playground.model.ApiRequest;
+import com.example.JunitPlayGround.junit5playground.model.ApiResponse;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,7 +18,6 @@ import java.net.URISyntaxException;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @WiremockCustom
-@WireMockTest
 public class ApiControllerTestJunit5IT {
 
     private TestRestTemplate template = new TestRestTemplate();
@@ -41,6 +42,18 @@ public class ApiControllerTestJunit5IT {
         System.out.println(uri);
         RequestEntity<Void> request = new RequestEntity<>(HttpMethod.GET, uri);
         ResponseEntity<Object> response = template.exchange(request, new ParameterizedTypeReference<Object>() {
+        });
+
+        System.out.println(response);
+    }
+
+    @Test
+    public void test_endpoint3() throws URISyntaxException {
+        URI uri = new URI(String.format("http://localhost:8087/ais/12321312321/create", port));
+        System.out.println(uri);
+        ApiRequest requestBody = new ApiRequest(5435, "message123");
+        RequestEntity<?> request = new RequestEntity<>(requestBody, HttpMethod.POST, uri);
+        ResponseEntity<Object> response = template.exchange(request, new ParameterizedTypeReference<>() {
         });
 
         System.out.println(response);
