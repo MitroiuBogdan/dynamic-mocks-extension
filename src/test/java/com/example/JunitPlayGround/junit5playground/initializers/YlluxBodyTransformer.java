@@ -1,7 +1,9 @@
-package com.example.JunitPlayGround.junit5playground.initializers;
+package com.ing.casy.extensions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.common.BinaryFile;
 import com.github.tomakehurst.wiremock.common.FileSource;
@@ -12,6 +14,7 @@ import com.github.tomakehurst.wiremock.http.ResponseDefinition;
 import org.apache.logging.log4j.util.Strings;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -20,14 +23,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.regex.Pattern.compile;
+import static org.apache.logging.log4j.util.Strings.isBlank;
 
 public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
 
     private static final Pattern RESPONSE_FIELD_PATTERN = Pattern.compile("\\$\\(.*?\\)"); // e.g. $(id)
     private static final Pattern REGEX_URL_PATTERN = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*?)>");// e.g. (?<id>.*?)
-    private static final Pattern RANDOM_INTEGER_PATTERN = Pattern.compile("!RandomInteger");
+    private static final String RANDOM_UUID_PATTERN = "$(@randomUuid)";
 
-    private static final String TRANSFORMER_NAME = "body-transformer";
+    private static final String TRANSFORMER_NAME = "casy-body-transformer";
     private static final String URL_REGEX = "urlRegex";
     private ObjectMapper objectMapper;
 
@@ -87,20 +91,57 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
         String requestBody = request.getBodyAsString();
         if (!Strings.isEmpty(requestBody)) {
             try {
-                return objectMapper.readValue(requestBody, Map.class);
+                ObjectNode jsonNode = (ObjectNode) objectMapper.readTree(requestBody);
+                Map<String, String> map = extractFieldsIntoMap(new HashMap<>(), jsonNode, null, 0);
+                System.out.println(map);
+                return map;
             } catch (JsonProcessingException e) {
                 System.out.println("Request is empty");
             }
         }
         return new HashMap<>();
     }
+    
+    public Map<String, String> extractFieldsIntoMap(Map<String, String> resultMap, JsonNode node, String parentNodeName, int layerIndex) throws JsonProcessingException {
+        for (Iterator<Map.Entry<String, JsonNode>> it = node.fields(); it.hasNext(); ) {
+            Map.Entry<String, JsonNode> field = it.next();
+            if (!field.getValue().isValueNode() && !field.getValue().isArray()) {
+                String fieldName = parentNodeName != null ? constructFieldNameByParentObject(parentNodeName, field.getKey()) : field.getKey();
+                extractFieldsIntoMap(resultMap, field.getValue(), fieldName, layerIndex);
+            } else {
+                String resultMapKey = constructFieldNameByParentObject(parentNodeName, field.getKey());
+                String resultMapValue;
+                if (field.getValue().isNumber()) {
+                    resultMapValue = field.getValue().toString();
+                } else if (field.getValue().isArray()) {
+                    resultMapValue = field.getValue() != null ? String.valueOf(field.getValue().toString()) : "null";
+                } else {
+                    resultMapValue = !isBlank(field.getValue().textValue()) ? field.getValue().textValue() : "null";
+                }
+                resultMap.put(resultMapKey, resultMapValue);
+                layerIndex++;
+            }
+        }
+        return resultMap;
+    }
+
+    private static String constructFieldNameByParentObject(String parentNodeName, String nodeName) {
+        StringBuilder stringBuilder = new StringBuilder();
+        String fieldName;
+        if (parentNodeName != null) {
+            fieldName = stringBuilder.append(parentNodeName)
+                    .append(".")
+                    .append(nodeName).toString();
+        } else {
+            fieldName = nodeName;
+        }
+        return fieldName;
+    }
 
     private static Map<String, String> extractParametersFromURL(String url, String urlRegex) {
         List<String> keys = extractKeysFromRegexURL(urlRegex);
         List<String> values = extractValuesFormURL(url, urlRegex);
 
-        System.out.println("Keys " + keys);
-        System.out.println("Values " + values);
         Map<String, String> map = new HashMap<>();
         if (keys.size() == values.size()) {
             for (int i = 0; i < keys.size(); i++) {
@@ -115,7 +156,6 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
     private static List<String> extractValuesFormURL(String url, String urlRegex) {
         Matcher matcher = compile(urlRegex)
                 .matcher(url);
-
         matcher.matches();
 
         List<String> values = new ArrayList<>();
@@ -158,6 +198,10 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
                 .collect(Collectors.toList());
 
         for (String regexField : responseFields) {
+            if (regexField.equals(RANDOM_UUID_PATTERN)) {
+                System.out.println(regexField);
+                modifiedResponseBody = modifiedResponseBody.replace(regexField, UUID.randomUUID().toString());
+            }
             if (!context.containsKey(regexField.substring(2, regexField.length() - 1))) {
                 modifiedResponseBody = modifiedResponseBody.replace(regexField, "null");
             } else
@@ -168,12 +212,8 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
     }
 
     private String getValueForContext(String field, Map<String, String> transformerContext) {
-        if (RANDOM_INTEGER_PATTERN.matcher(field).find()) {
-            return String.valueOf((new Random()).nextInt(2147483647));
-        } else {
-            String fieldName = field.substring(2, field.length() - 1);
-            return transformerContext.get(fieldName);
-        }
+        String fieldName = field.substring(2, field.length() - 1);
+        return transformerContext.get(fieldName);
     }
 
 }
