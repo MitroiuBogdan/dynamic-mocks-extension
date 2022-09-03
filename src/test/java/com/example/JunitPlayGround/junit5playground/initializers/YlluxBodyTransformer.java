@@ -131,7 +131,7 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
         for (int i = 1; i < matcher.groupCount() + 1; i++) {
             values.add(matcher.group(i));
         }
-        return values;
+         return values;
     }
 
     private String getResponseBody(ResponseDefinition responseDefinition, FileSource fileSource) {
