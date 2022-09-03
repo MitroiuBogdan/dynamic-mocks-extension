@@ -43,7 +43,7 @@ public class ApiControllerTestJunit5IT {
         RequestEntity<Void> request = new RequestEntity<>(HttpMethod.GET, uri);
         ResponseEntity<Object> response = template.exchange(request, new ParameterizedTypeReference<Object>() {
         });
-        System.out.println("test");
+
         System.out.println(response);
     }
 
