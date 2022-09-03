@@ -154,3 +154,24 @@ class JsonUtilsTest {
         System.out.println(o);
     }
 }
+
+// {
+//   "request": {
+//     "method": "POST",
+//     "urlPattern": "/transformer/([^/]+)/transform\\?queryId=([^/]+)"
+//   },
+//   "response": {
+//     "status": 200,
+//     "headers": {
+//       "Content-Type": "application/json",
+//       "Cache-Control": "no-cache"
+//     },
+//     "bodyFileName": "test-transformer-response.json",
+//     "transformers": [
+//           "casy-response-transformer"
+//     ],
+//     "transformerParameters": {
+//       "urlRegex": "/transformer/(?<pathId>.*?)/transform?queryId=(?<queryId>.*?)"
+//     }
+//   }
+// }
