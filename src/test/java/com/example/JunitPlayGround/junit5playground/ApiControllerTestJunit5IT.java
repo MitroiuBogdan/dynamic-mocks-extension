@@ -50,7 +50,7 @@ public class ApiControllerTestJunit5IT {
     @Test
     public void test_endpoint3() throws URISyntaxException {
         URI uri = new URI(String.format("http://localhost:8087/ais/12321312321/create", port));
-        System.out.println(uri);
+         System.out.println(uri);
         ApiRequest requestBody = new ApiRequest(5435, "message123");
         RequestEntity<?> request = new RequestEntity<>(requestBody, HttpMethod.POST, uri);
         ResponseEntity<Object> response = template.exchange(request, new ParameterizedTypeReference<>() {
