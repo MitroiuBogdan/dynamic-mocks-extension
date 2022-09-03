@@ -22,9 +22,7 @@ public class ApiController {
     @GetMapping("/ais/{id}/refresh/{id2}/hello")
     public ResponseEntity getSomething(@PathVariable String id, @PathVariable String id2, @RequestParam String id3) throws HttpTimeoutException {
         System.out.println("API has been called " + LocalDateTime.now());
-       return ResponseEntity.status(HttpStatus.OK)
-               .entity()
-               .
+       return ResponseEntity.status(HttpStatus.OK).build();
     }
 
 
