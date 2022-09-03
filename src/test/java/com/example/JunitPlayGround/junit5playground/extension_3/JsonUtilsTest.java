@@ -14,57 +14,79 @@ class JsonUtilsTest {
 
     @Test
     void testJsonUtils() throws JsonProcessingException {
-        String jsonStr = extractStringValue();
-        print(jsonStr);
+//        String jsonStr = extractStringValue();
+//        print(jsonStr);
 
-        Map<String, Object> finalResult = JsonUtils.extractJsonFieldValue(jsonStr);
-        Map<String, Object> mergedMap = new HashMap();
-        finalResult.forEach((nodeKey, nodeValue) -> {
-            extractFieldsFromNLayer(mergedMap, nodeKey, nodeValue);
 
-        });
+//        Map<String, Object> map = extractFieldValueFromJsonString(jsonStr);
 
-        print(mergedMap);
+//        print(map);
     }
 
 //    DEV
 
-    public Map<String, Object> extractFieldsFromNLayer(Map<String, Object> finalResult, Object nodeKey, Object nodeValue) {
+    public Map<String, Object> extractFieldValueFromJsonString(String jsonString) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, Object> finalResult = new HashMap<>();
+        objectMapper
+                .readValue(jsonString, Map.class)
+                .forEach((key, value) -> extractFieldValueFromNode(finalResult, String.valueOf(key), value));
+
+        return finalResult;
+    }
+
+    public Map<String, Object> extractFieldValueFromNode(Map<String, Object> finalResult, String nodeKey, Object nodeValue) {
         if (nodeValue instanceof Map) {
-            ((Map<?, ?>) nodeValue).forEach((key, value) -> {
-                extractFieldsFromNLayer(finalResult, appendParentNodeName(nodeKey, key), value);
-            });
+            ((Map<?, ?>) nodeValue).forEach((key, value) ->
+                    extractFieldValueFromNode(finalResult, appendParentKeyName(nodeKey, String.valueOf(key)), value));
         } else {
-            finalResult.put(String.valueOf(nodeKey), nodeValue);
+            String value = null == nodeValue ? "null" : String.valueOf(nodeValue);
+            finalResult.put(String.valueOf(nodeKey), value);
         }
         return finalResult;
     }
 
 
-    private Object appendParentNodeName(Object parentNodeName, Object nodeName) {
+    private String appendParentKeyName(String parentKeyNode, String nodeKey) {
         StringBuilder stringBuilder = new StringBuilder();
-        Object fieldName;
-        if (parentNodeName != null) {
-            fieldName = stringBuilder.append(parentNodeName)
+        String finalKeyName;
+        if (parentKeyNode != null) {
+            finalKeyName = stringBuilder.append(parentKeyNode)
                     .append(".")
-                    .append(nodeName).toString();
+                    .append(nodeKey).toString();
         } else {
-            fieldName = nodeName;
+            finalKeyName = nodeKey;
         }
-        return fieldName;
+        return finalKeyName;
     }
 
     //
     public String extractStringValue() throws JsonProcessingException {
-        return objectMapper.writeValueAsString(testClass());
+        return objectMapper.writeValueAsString(new DataRequest(testClass()));
     }
 
     public TestClass testClass() {
         return new TestClass(
                 "name",
-                10D,
-                new Temp("nestedName", 100D, List.of("Lisa", "Jenny")),
+                null,
+                new Temp(null, 100D, List.of("Lisa", "Jenny")),
                 List.of("Anne", "Mirabel"));
+    }
+
+    class DataRequest {
+        private TestClass data;
+
+        public DataRequest(TestClass data) {
+            this.data = data;
+        }
+
+        public TestClass getData() {
+            return data;
+        }
+
+        public void setData(TestClass data) {
+            this.data = data;
+        }
     }
 
     class TestClass {
