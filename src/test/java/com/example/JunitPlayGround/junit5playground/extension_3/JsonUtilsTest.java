@@ -32,7 +32,7 @@ class JsonUtilsTest {
     public Map<String, Object> extractFieldsFromNLayer(Map<String, Object> finalResult, Object nodeKey, Object nodeValue) {
         if (nodeValue instanceof Map) {
             ((Map<?, ?>) nodeValue).forEach((key, value) -> {
-                extractFieldsFromNLayer(finalResult, key, value);
+                extractFieldsFromNLayer(finalResult, appendParentNodeName(nodeKey, key), value);
             });
         } else {
             finalResult.put(String.valueOf(nodeKey), nodeValue);
@@ -40,9 +40,18 @@ class JsonUtilsTest {
         return finalResult;
     }
 
-    public String appendParentKeyName(Object parenKey) {
 
-        return null;
+    private Object appendParentNodeName(Object parentNodeName, Object nodeName) {
+        StringBuilder stringBuilder = new StringBuilder();
+        Object fieldName;
+        if (parentNodeName != null) {
+            fieldName = stringBuilder.append(parentNodeName)
+                    .append(".")
+                    .append(nodeName).toString();
+        } else {
+            fieldName = nodeName;
+        }
+        return fieldName;
     }
 
     //
