@@ -114,6 +114,7 @@ class JsonUtilsTest {
         public String name_2;
         public String name_3;
 
+
         public JsonResponse(String name_1, String name_2, String name_3) {
             this.name_1 = name_1;
             this.name_2 = name_2;
