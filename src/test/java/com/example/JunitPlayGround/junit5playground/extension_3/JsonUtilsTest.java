@@ -61,10 +61,9 @@ class JsonUtilsTest {
 
     private String replaceValue(String replacedJsonString, Map<String, String> context, Object nodeValue) {
         if (nodeValue instanceof Map) {
-            String finalReplacedJsonString = replacedJsonString;
-            ((Map<?, ?>) nodeValue).forEach((key, value) ->
-                    replaceValue(finalReplacedJsonString, context, value)
-            );
+            for (Map.Entry<String, Object> entry : ((Map<String,Object>) nodeValue).entrySet()) {
+                replacedJsonString = replaceValue(replacedJsonString, context, entry.getValue());
+            }
         } else {
             String nodeValueString = String.valueOf(nodeValue);
             boolean isReplaceableField = RESPONSE_FIELD_PATTERN.matcher(nodeValueString).matches();
@@ -100,11 +99,11 @@ class JsonUtilsTest {
 
     public String getResponseString() throws JsonProcessingException {
         return objectMapper.writeValueAsString(
-                new JsonResponse(
+                new SaltegeResponse(new JsonResponse(
                         "<p1>",
                         "%random%",
                         "<p19>"
-                )
+                ))
         );
     }
 
@@ -131,6 +130,22 @@ class JsonUtilsTest {
 
         public String getName_3() {
             return name_3;
+        }
+    }
+
+    class SaltegeResponse {
+        JsonResponse data;
+
+        public SaltegeResponse(JsonResponse data) {
+            this.data = data;
+        }
+
+        public JsonResponse getData() {
+            return data;
+        }
+
+        public void setData(JsonResponse data) {
+            this.data = data;
         }
     }
 
