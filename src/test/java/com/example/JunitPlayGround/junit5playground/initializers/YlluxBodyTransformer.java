@@ -25,7 +25,6 @@ import java.util.stream.Stream;
 import static java.util.regex.Pattern.compile;
 import static org.apache.logging.log4j.util.Strings.isBlank;
 
-@Slf4j
 public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
 
     private static final Pattern RESPONSE_FIELD_PATTERN = Pattern.compile("\\$\\(.*?\\)"); // e.g. $(id)
@@ -95,7 +94,6 @@ public class YlluxBodyTransformer extends ResponseDefinitionTransformer {
                 Map<String, String> map = extractJsonFieldValueIntoMap(new HashMap<>(), jsonNode, null, 0);
                 return map;
             } catch (JsonProcessingException e) {
-                log.warn("Request body is empty");
             }
         }
         return new HashMap<>();
