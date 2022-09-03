@@ -14,20 +14,20 @@ class JsonUtilsTest {
 
     @Test
     void testJsonUtils() throws JsonProcessingException {
-//        String jsonStr = extractStringValue();
-//        print(jsonStr);
+        String jsonStr = extractStringValue();
+        print(jsonStr);
 
 
-//        Map<String, Object> map = extractFieldValueFromJsonString(jsonStr);
+        Map<String, String> map = extractFieldValueFromJsonString(jsonStr);
 
-//        print(map);
+        print(map);
     }
 
 //    DEV
 
-    public Map<String, Object> extractFieldValueFromJsonString(String jsonString) throws JsonProcessingException {
+    public Map<String, String> extractFieldValueFromJsonString(String jsonString) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
-        Map<String, Object> finalResult = new HashMap<>();
+        Map<String, String> finalResult = new HashMap<>();
         objectMapper
                 .readValue(jsonString, Map.class)
                 .forEach((key, value) -> extractFieldValueFromNode(finalResult, String.valueOf(key), value));
@@ -35,7 +35,7 @@ class JsonUtilsTest {
         return finalResult;
     }
 
-    public Map<String, Object> extractFieldValueFromNode(Map<String, Object> finalResult, String nodeKey, Object nodeValue) {
+    private Map<String, String> extractFieldValueFromNode(Map<String, String> finalResult, String nodeKey, Object nodeValue) {
         if (nodeValue instanceof Map) {
             ((Map<?, ?>) nodeValue).forEach((key, value) ->
                     extractFieldValueFromNode(finalResult, appendParentKeyName(nodeKey, String.valueOf(key)), value));
@@ -45,7 +45,6 @@ class JsonUtilsTest {
         }
         return finalResult;
     }
-
 
     private String appendParentKeyName(String parentKeyNode, String nodeKey) {
         StringBuilder stringBuilder = new StringBuilder();
