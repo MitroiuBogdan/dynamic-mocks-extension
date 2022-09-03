@@ -1,0 +1,5 @@
+{
+  "pathId": "$(pathId)",
+  "id": "$(id)",
+  "message": "$(message)"
+}

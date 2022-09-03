@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPattern": "/ais/*.[^/]+/refresh/*.[^/]+/hello"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-cache"
+    },
+    "bodyFileName": "response.json",
+    "transformers": [
+      "body-transformer"
+    ],
+    "transformerParameters": {
+      "urlRegex": "/ais/(?<id>.*?)/refresh/(?<id2>.*?)/hello"
+    }
+  }
+}
