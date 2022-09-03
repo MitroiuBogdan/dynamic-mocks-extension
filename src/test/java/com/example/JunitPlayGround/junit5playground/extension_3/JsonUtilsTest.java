@@ -4,173 +4,61 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class JsonUtilsTest {
 
     ObjectMapper objectMapper = new ObjectMapper();
 
+    String urlRegex = "/ais/(?<id>.*?)/refresh/(?<id2>.*?)/hello\\?id3=(?<id3>.*?)&id4=(?<id4>.*?)";
+    String url = "/ais/*.[^/]+/refresh/*.[^/]+/hello";
+
+    static final Pattern RESPONSE_FIELD_PATTERN = Pattern.compile("\\$\\(.*?\\)"); // e.g. $(id)
+    static final String RANDOM_UUID_PATTERN = "$(@randomUuid)";
+    static final String URL_REGEX_PATTERN = "\\(\\?<([a-zA-Z][a-zA-Z0-9]*?)>";
+
+
     @Test
     void testJsonUtils() throws JsonProcessingException {
-        String jsonStr = extractStringValue();
-        print(jsonStr);
 
+        String urlTest = "/ais/123/refresh/001/hello?id3=0003&id4=0009";
+        String url = "/ais/*.[^/]+/refresh/*.[^/]+/hello?id3=*.[^/]+";
 
-        Map<String, String> map = extractFieldValueFromJsonString(jsonStr);
+        List<String> parameters = extractParametersFromURL(urlTest, urlRegex);
 
-        print(map);
+        System.out.println(parameters);
     }
 
-//    DEV
-
-    public Map<String, String> extractFieldValueFromJsonString(String jsonString) throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        Map<String, String> finalResult = new HashMap<>();
-        objectMapper
-                .readValue(jsonString, Map.class)
-                .forEach((key, value) -> extractFieldValueFromNode(finalResult, String.valueOf(key), value));
-
-        return finalResult;
+    private List<String> extractParametersFromURL(String url, String urlRegex) {
+        List<String> urlParameters = new ArrayList<>();
+        Matcher matchResult = Pattern.compile(urlRegex).matcher(url);
+        if (matchResult.matches()) {
+            int index = 1;
+            while (index <= matchResult.groupCount()) {
+                urlParameters.add(matchResult.group(index));
+                index++;
+            }
+        }
+        return urlParameters;
     }
 
-    private Map<String, String> extractFieldValueFromNode(Map<String, String> finalResult, String nodeKey, Object nodeValue) {
-        if (nodeValue instanceof Map) {
-            ((Map<?, ?>) nodeValue).forEach((key, value) ->
-                    extractFieldValueFromNode(finalResult, appendParentKeyName(nodeKey, String.valueOf(key)), value));
-        } else {
-            String value = null == nodeValue ? "null" : String.valueOf(nodeValue);
-            finalResult.put(String.valueOf(nodeKey), value);
-        }
-        return finalResult;
+    private List<String> extractParameterNamesFromRegexURL(String urlRegex,String regexUrlParameterPattern) {
+        return Pattern.compile(regexUrlParameterPattern)
+                .matcher(urlRegex)
+                .results()
+                .map(matchResult -> matchResult.group(1))
+                .collect(Collectors.toList());
     }
 
-    private String appendParentKeyName(String parentKeyNode, String nodeKey) {
-        StringBuilder stringBuilder = new StringBuilder();
-        String finalKeyName;
-        if (parentKeyNode != null) {
-            finalKeyName = stringBuilder.append(parentKeyNode)
-                    .append(".")
-                    .append(nodeKey).toString();
-        } else {
-            finalKeyName = nodeKey;
-        }
-        return finalKeyName;
-    }
-
-    //
-    public String extractStringValue() throws JsonProcessingException {
-        return objectMapper.writeValueAsString(new DataRequest(testClass()));
-    }
-
-    public TestClass testClass() {
-        return new TestClass(
-                "name",
-                null,
-                new Temp(null, 100D, List.of("Lisa", "Jenny")),
-                List.of("Anne", "Mirabel"));
-    }
-
-    class DataRequest {
-        private TestClass data;
-
-        public DataRequest(TestClass data) {
-            this.data = data;
-        }
-
-        public TestClass getData() {
-            return data;
-        }
-
-        public void setData(TestClass data) {
-            this.data = data;
-        }
-    }
-
-    class TestClass {
-
-        public String name;
-        public Double value;
-        public Temp temp;
-        public List<String> stringList;
-
-        public TestClass(String name, Double value, Temp temp, List<String> stringList) {
-            this.name = name;
-            this.value = value;
-            this.temp = temp;
-            this.stringList = stringList;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public Double getValue() {
-            return value;
-        }
-
-        public void setValue(Double value) {
-            this.value = value;
-        }
-
-        public Temp getTemp() {
-            return temp;
-        }
-
-        public void setTemp(Temp temp) {
-            this.temp = temp;
-        }
-
-        public List<String> getStringList() {
-            return stringList;
-        }
-
-        public void setStringList(List<String> stringList) {
-            this.stringList = stringList;
-        }
-    }
-
-    class Temp {
-        public String tempName;
-        public Double tempValue;
-        public List tempListString;
-
-        public Temp(String tempName, Double tempValue, List tempListString) {
-            this.tempName = tempName;
-            this.tempValue = tempValue;
-            this.tempListString = tempListString;
-        }
-
-        public String getTempName() {
-            return tempName;
-        }
-
-        public void setTempName(String tempName) {
-            this.tempName = tempName;
-        }
-
-        public Double getTempValue() {
-            return tempValue;
-        }
-
-        public void setTempValue(Double tempValue) {
-            this.tempValue = tempValue;
-        }
-
-        public List getTempListString() {
-            return tempListString;
-        }
-
-        public void setTempListString(List tempListString) {
-            this.tempListString = tempListString;
-        }
-    }
-
+    //    DEV
     public void print(Object o) {
         System.out.println(o);
     }
