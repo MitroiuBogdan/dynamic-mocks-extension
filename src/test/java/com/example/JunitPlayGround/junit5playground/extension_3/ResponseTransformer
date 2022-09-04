@@ -1,0 +1,252 @@
+
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.*;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.regex.Pattern.compile;
+
+@Slf4j
+public class ResponseTransformerUtils {
+
+    static final String RESPONSE_FIELD_PATTERN = "<.*?>"; // e.g. "id":"<id>"
+    static final String RESPONSE_RANDOM_UUID_PATTERN = "%UUID%"; //e.g "id":"%rUUID%"
+    static final String REGEX_URL_PATTERN = "\\(\\?<([a-zA-Z][a-zA-Z0-9]*?)>"; //e.g ais/(?<id>)/refresh?id2=(?<id2>)
+
+    public static Map<String, Object> mergeContexts(Map<String, Object> map1, Map<String, Object> map2) {
+        return Stream.of(map1, map2)
+                .flatMap(map -> map.entrySet().stream())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue));
+    }
+
+    public static List<String> extractParametersFromUrl(String url, String urlRegex) {
+        List<String> urlParameters = new ArrayList<>();
+        Matcher matchResult = compile(urlRegex).matcher(url);
+        if (matchResult.matches()) {
+            int index = 1;
+            while (index <= matchResult.groupCount()) {
+                urlParameters.add(matchResult.group(index));
+                index++;
+            }
+        }
+        return urlParameters;
+    }
+
+    public static List<String> extractParameterNamesFromRegexUrl(String urlRegex) {
+        return compile(REGEX_URL_PATTERN)
+                .matcher(urlRegex)
+                .results()
+                .map(matchResult -> matchResult.group(1))
+                .collect(Collectors.toList());
+    }
+
+    public static Map<String, Object> extractFieldValueFromJsonRequest(String jsonRequest) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, Object> finalResult = new HashMap<>();
+        try {
+            objectMapper
+                    .readValue(jsonRequest, Map.class)
+                    .forEach((key, value) -> extractFieldValueFromJsonNode(finalResult, String.valueOf(key), value));
+        } catch (Exception e) {
+            log.error(" extractFieldValueFromJsonString - {}", e.getMessage());
+        }
+        return finalResult;
+    }
+
+    private static Map<String, Object> extractFieldValueFromJsonNode(Map<String, Object> finalResult, String nodeKey, Object nodeValue) {
+        if (nodeValue instanceof Map) {
+            ((Map<?, ?>) nodeValue).forEach((key, value) ->
+                    extractFieldValueFromJsonNode(finalResult, appendParentKeyName(nodeKey, String.valueOf(key)), value));
+        } else {
+            Object value = null == nodeValue ? "null" : nodeValue;
+            finalResult.put(String.valueOf(nodeKey), value);
+        }
+        return finalResult;
+    }
+
+    private static String appendParentKeyName(String parentKeyNode, String nodeKey) {
+        return new StringBuilder()
+                .append(parentKeyNode)
+                .append(".")
+                .append(nodeKey)
+                .toString();
+    }
+
+    public static String replaceResponseRegexFieldsWithContextValues(String body, Map<String, Object> context) {
+        List<String> responseFieldsPatterns = findPatterns(body, RESPONSE_FIELD_PATTERN);
+        List<String> randomUUIDPatterns = findPatterns(body, RESPONSE_RANDOM_UUID_PATTERN);
+
+        List<String> replaceablePatternsFromResponse = Stream.of(responseFieldsPatterns, randomUUIDPatterns)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+        for (String fieldPattern : replaceablePatternsFromResponse) {
+            body = replaceFieldPatternWithContextValue(body, fieldPattern, context);
+        }
+        return body;
+    }
+
+    private static String replaceFieldPatternWithContextValue(String body, String fieldPattern, Map<String, Object> context) {
+        boolean isReplaceableField = compile(RESPONSE_FIELD_PATTERN).matcher(fieldPattern).matches();
+        boolean isRandomUUIDField = compile(RESPONSE_RANDOM_UUID_PATTERN).matcher(fieldPattern).matches();
+        /*Add new pattern here*/
+        if (isRandomUUIDField) {
+            return body.replaceFirst(fieldPattern, UUID.randomUUID().toString());
+        }
+        if (isReplaceableField) {
+            if (!context.containsKey(removeRegexSyntax(fieldPattern))) {
+                return body.replace("\"" + fieldPattern + "\"", "null");
+            } else {
+                Object value = context.get(removeRegexSyntax(fieldPattern));
+                if (value instanceof String) {
+                    return body.replace(fieldPattern, String.valueOf(value));
+                } else if (value instanceof Collection) {
+                    return body.replaceFirst("\"" + fieldPattern + "\"", generateStringValueForArray((Collection) value));
+                } else {
+                    return body.replace("\"" + fieldPattern + "\"", String.valueOf(value));
+                }
+            }
+        }
+        return body;
+    }
+
+    private static List<String> findPatterns(String target, String pattern) {
+        return Pattern.compile(pattern).
+                matcher(target)
+                .results()
+                .map(MatchResult::group)
+                .collect(Collectors.toList());
+    }
+
+    private static String generateStringValueForArray(Collection collection) {
+        Object[] objectArray = collection.toArray();
+        if (objectArray.length > 0 && objectArray[0] instanceof String) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("[");
+            for (int i = 0; i < objectArray.length; i++) {
+                if (i < objectArray.length - 1) {
+                    sb.append("\"" + objectArray[i] + "\",");
+                } else {
+                    sb.append("\"" + objectArray[i] + "\"");
+                }
+            }
+            sb.append("]");
+            return sb.toString();
+        } else {
+            return String.valueOf(collection);
+        }
+    }
+
+    private static String removeRegexSyntax(String s) {
+        return s.substring(1, s.length() - 1);
+    }
+
+}
+
+
+
+
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import com.github.tomakehurst.wiremock.common.BinaryFile;
+import com.github.tomakehurst.wiremock.common.FileSource;
+import com.github.tomakehurst.wiremock.extension.Parameters;
+import com.github.tomakehurst.wiremock.extension.ResponseDefinitionTransformer;
+import com.github.tomakehurst.wiremock.http.Request;
+import com.github.tomakehurst.wiremock.http.ResponseDefinition;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+@Slf4j
+@NoArgsConstructor
+public class ResponseTransformer extends ResponseDefinitionTransformer {
+
+    private static final String TRANSFORMER_NAME = "casy-response-transformer";
+    private static final String URL_REGEX = "urlRegex";
+
+    @Override
+    public boolean applyGlobally() {
+        return false;
+    }
+
+    @Override
+    public String getName() {
+        return TRANSFORMER_NAME;
+    }
+
+    @Override
+    public ResponseDefinition transform(Request request, ResponseDefinition responseDefinition, FileSource fileSource, Parameters transformerParameters) {
+        if (hasEmptyResponseBody(responseDefinition)) {
+            return responseDefinition;
+        }
+        Map<String, Object> requestParametersContext = cacheParametersFromUrl(request, transformerParameters);
+        Map<String, Object> urlParametersContext = cacheFieldsFromRequest(request);
+
+        Map<String, Object> context = ResponseTransformerUtils.mergeContexts(urlParametersContext, requestParametersContext);
+
+        String responseBody = getResponseBody(responseDefinition, fileSource);
+        String modifiedResponseBody = ResponseTransformerUtils.replaceResponseRegexFieldsWithContextValues(responseBody, context);
+        System.out.println(modifiedResponseBody);
+        return ResponseDefinitionBuilder
+                .like(responseDefinition)
+                .but()
+                .withBody(modifiedResponseBody)
+                .build();
+    }
+
+    private boolean hasEmptyResponseBody(ResponseDefinition responseDefinition) {
+        return responseDefinition.getBody() == null && responseDefinition.getBodyFileName() == null;
+    }
+
+    private Map<String, Object> cacheFieldsFromRequest(Request request) {
+        String requestBody = request.getBodyAsString();
+        return ResponseTransformerUtils.extractFieldValueFromJsonRequest(requestBody);
+    }
+
+    private Map<String, Object> cacheParametersFromUrl(Request request, Parameters transformerParameters) {
+        String urlRegex = Optional
+                .of(transformerParameters.getString(URL_REGEX))
+                .orElseThrow(() -> new RuntimeException("urlRegex cannot be null"));
+
+        String url = Optional.of(request.getUrl())
+                .orElseThrow(() -> new RuntimeException("Url cannot be null"));
+
+        List<String> parameterName = ResponseTransformerUtils.extractParameterNamesFromRegexUrl(urlRegex);
+        List<String> parameterValue = ResponseTransformerUtils.extractParametersFromUrl(url, urlRegex);
+
+        Map<String, Object> parameterNameValueMap = new HashMap<>();
+        if (parameterName.size() == parameterValue.size()) {
+            for (int i = 0; i < parameterName.size(); i++) {
+                parameterNameValueMap.put(parameterName.get(i), parameterValue.get(i));
+            }
+        } else {
+            log.error("Values found in url didn't match urlRegex");
+        }
+        return parameterNameValueMap;
+    }
+
+    private String getResponseBody(ResponseDefinition responseDefinition, FileSource fileSource) {
+        String body;
+        if (responseDefinition.getBody() != null) {
+            body = responseDefinition.getBody();
+        } else {
+            BinaryFile binaryFile = fileSource.getBinaryFileNamed(responseDefinition.getBodyFileName());
+            body = new String(binaryFile.readContents(), StandardCharsets.UTF_8);
+        }
+        return body;
+    }
+
+}
