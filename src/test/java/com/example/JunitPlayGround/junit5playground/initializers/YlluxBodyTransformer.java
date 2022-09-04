@@ -1,4 +1,4 @@
-package com.ing.casy.extensions;
+package com.example.JunitPlayGround.junit5playground.initializers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
