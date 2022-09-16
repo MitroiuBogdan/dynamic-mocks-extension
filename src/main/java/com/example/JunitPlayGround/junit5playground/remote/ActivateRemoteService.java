@@ -17,7 +17,7 @@ public class ActivateRemoteService {
 
 
     public CompletableFuture<Grant> createPermission() {
-        return permissionRemoteService.createPermission("dsadsa", "2")
+        return permissionRemoteService.createPermission(null, "2")
 //                .handleAsync((permissionPOJO, throwable) -> {
 //                    if (throwable != null) {
 //                        System.out.println("Bad");
@@ -32,18 +32,17 @@ public class ActivateRemoteService {
 //                    }
 //                });
 
-//                .whenCompleteAsync((permissionPOJO, throwable) -> {
-//                    Optional.ofNullable(throwable)
-//                            .ifPresent(throwable1 -> System.out.println("HAHA"));
-//                })
-//                .thenApplyAsync(permissionPOJO -> {
-//                    System.out.println("ACTIVATE");
-//                    System.out.println(permissionPOJO);
-//                    if (true) {
-//                        throw new RuntimeException("HAHA");
-//                    }
-//                    return new Grant(permissionPOJO.getId(), permissionPOJO.getMessage());
-//                });
+                .whenCompleteAsync((permissionPOJO, throwable) -> {
+                    Optional.ofNullable(throwable)
+                            .ifPresent(throwable1 -> System.out.println("XXX"));
+                }).thenApplyAsync(permissionPOJO -> {
+                    System.out.println("ACTIVATE");
+                    System.out.println(permissionPOJO);
+                    if (true) {
+                        throw new RuntimeException("HAHA");
+                    }
+                    return new Grant(permissionPOJO.getId(), permissionPOJO.getMessage());
+                });
 
 
     }
