@@ -19,12 +19,15 @@ class JsonUtilsTest {
 
     @Test
     void testJsonUtils() throws JsonProcessingException {
-        Map<String, String> context = createTestMap();
-        String response = getResponseString();
-        print(response);
-        print(context);
+//        Map<String, String> context = createTestMap();
+//        String response = getResponseString();
+//        print(response);
+//        print(context);
+//
+//        String str = "<p1>";
 
-        String str = "<p1>";
+
+
 
         //Replace first occurrence of substring "Java" with "JAVA"
 //        String newStr = str.replaceFirst("<p1>", "soupe");
@@ -41,9 +44,9 @@ class JsonUtilsTest {
 //            response = response.replaceFirst(value, context.get(value.substring(1, value.length() - 1)));
 //            System.out.println(response);
 //        }
-
-        String finalValue = replaceJson(response, context);
-        System.out.println(finalValue);
+//
+//        String finalValue = replaceJson(response, context);
+//        System.out.println(finalValue);
 
     }
 

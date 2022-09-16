@@ -3,8 +3,11 @@ package com.example.JunitPlayGround.junit5playground;
 import com.example.JunitPlayGround.junit5playground.extension_2.WiremockCustom;
 import com.example.JunitPlayGround.junit5playground.model.ApiRequest;
 import com.example.JunitPlayGround.junit5playground.model.ApiResponse;
+import com.example.JunitPlayGround.junit5playground.rest.ApiController;
+import com.example.JunitPlayGround.junit5playground.rest.ProviderRepo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
@@ -21,6 +24,11 @@ import java.net.URISyntaxException;
 public class ApiControllerTestJunit5IT {
 
     private TestRestTemplate template = new TestRestTemplate();
+    @Autowired
+    ProviderRepo providerRepo;
+
+    @Autowired
+    ApiController apiController;
 
     @LocalServerPort
     private int port;
@@ -33,11 +41,28 @@ public class ApiControllerTestJunit5IT {
         ResponseEntity<Object> response = template.exchange(request, new ParameterizedTypeReference<Object>() {
         });
 
+        URI uri2 = new URI(String.format("http://localhost:8087/ais/12321312321/create", port));
+        System.out.println(uri2);
+        ApiRequest requestBody = new ApiRequest(5435, "message123");
+        RequestEntity<?> request2 = new RequestEntity<>(requestBody, HttpMethod.POST, uri);
+        ResponseEntity<Object> response2 = template.exchange(request, new ParameterizedTypeReference<>() {
+        });
+
+        providerRepo.add("LULU");
+        apiController.increment("d");
+
+        apiController.inside();
+        System.out.println(providerRepo.getList());
         System.out.println(response);
     }
 
     @Test
     public void test_endpoint2() throws URISyntaxException {
+
+        providerRepo.add("LULU");
+
+
+        System.out.println(providerRepo.getList());
         URI uri = new URI(String.format("http://localhost:8087/ais/123/refresh/321/hello", port));
         System.out.println(uri);
         RequestEntity<Void> request = new RequestEntity<>(HttpMethod.GET, uri);
@@ -49,13 +74,19 @@ public class ApiControllerTestJunit5IT {
 
     @Test
     public void test_endpoint3() throws URISyntaxException {
+        providerRepo.add("LULU");
+
+
+
         URI uri = new URI(String.format("http://localhost:8087/ais/12321312321/create", port));
-         System.out.println(uri);
+        System.out.println(uri);
         ApiRequest requestBody = new ApiRequest(5435, "message123");
         RequestEntity<?> request = new RequestEntity<>(requestBody, HttpMethod.POST, uri);
         ResponseEntity<Object> response = template.exchange(request, new ParameterizedTypeReference<>() {
         });
-
+        apiController.increment("d");
+        System.out.println(providerRepo.getList());
         System.out.println(response);
+        apiController.inside();
     }
 }
